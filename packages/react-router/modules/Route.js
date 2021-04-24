@@ -30,11 +30,32 @@ function evalChildrenDev(children, props, path) {
 class Route extends React.Component {
   render() {
     return (
+      /**
+       * 通过使用 React Context 获取最近的 Router context 内容
+       * Consumer: https://zh-hans.reactjs.org/docs/context.html#contextconsumer
+       */
       <RouterContext.Consumer>
         {context => {
+          /**
+           * invariant 方法是用来判断 Route 组件是不是被 Router 组件包裹
+           * 因为 Route 组件的正确使用发放是放在 Router 组件里面的
+           */
           invariant(context, "You should not use <Route> outside a <Router>");
 
+          /**
+           * location 是当前的路由状态
+           * Route 组件主要用它来判断 pathname 是否匹配当前页面
+           */
           const location = this.props.location || context.location;
+
+          /**
+           * 当 Route 组件获取到路由状态时，就会进行匹配判断，当 match 为 true 时，
+           * 渲染对应页面
+           *
+           * 1. 如果外层有 Switch 组件且已经帮 Route 判断正确匹配，那就渲染页面
+           *    注：Switch 内的 match 方法和 Route 的是一致的
+           * 2. 如果
+           */
           const match = this.props.computedMatch
             ? this.props.computedMatch // <Switch> already computed the match for us
             : this.props.path
