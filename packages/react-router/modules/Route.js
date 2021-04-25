@@ -38,7 +38,7 @@ class Route extends React.Component {
         {context => {
           /**
            * invariant 方法是用来判断 Route 组件是不是被 Router 组件包裹
-           * 因为 Route 组件的正确使用发放是放在 Router 组件里面的
+           * 因为 Route 组件的正确使用方法是放在 Router 组件里面的
            */
           invariant(context, "You should not use <Route> outside a <Router>");
 
@@ -49,12 +49,14 @@ class Route extends React.Component {
           const location = this.props.location || context.location;
 
           /**
-           * 当 Route 组件获取到路由状态时，就会进行匹配判断，当 match 为 true 时，
-           * 渲染对应页面
+           * 当 Route 组件获取到路由状态时，就会进行匹配判断，当 match 为 true 时， 渲染对应页面
            *
            * 1. 如果外层有 Switch 组件且已经帮 Route 判断正确匹配，那就渲染页面
-           *    注：Switch 内的 match 方法和 Route 的是一致的
-           * 2. 如果
+           *    注：Switch 内的 match 方法和 Route 使用的是一致的，都是 react-router/modules/matchPath
+           *
+           * 2. this.props.path ? matchPath(location.pathname, this.props) : context.match
+           *    1). '?' 如果传入了 path 就让 Route 组件自行通过 matchPath 方法匹配
+           *    2). ':' 如果没有传入，那么就去获取 context 中的 match，也就是最近的 Router 组件是否匹配
            */
           const match = this.props.computedMatch
             ? this.props.computedMatch // <Switch> already computed the match for us
@@ -66,6 +68,10 @@ class Route extends React.Component {
 
           let { children, component, render } = this.props;
 
+          /**
+           * 这里看作者的注释即可
+           * 翻译一下：Preact 的 children 有为空数组的情况，需要兼容此 case
+           */
           // Preact uses an empty array as children by
           // default, so use null if that's the case.
           if (Array.isArray(children) && isEmptyChildren(children)) {
@@ -74,7 +80,11 @@ class Route extends React.Component {
 
           return (
             <RouterContext.Provider value={props}>
-              {props.match
+              {/**
+               * 我晕了，这里怎么这么多三元表达式
+               * 个人不是很喜欢这种写法，比较难看懂（应该是我菜？）
+               */
+              props.match
                 ? children
                   ? typeof children === "function"
                     ? __DEV__
