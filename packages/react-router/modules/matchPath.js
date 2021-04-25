@@ -4,13 +4,38 @@ const cache = {};
 const cacheLimit = 10000;
 let cacheCount = 0;
 
+/**
+ * 这里通过 [path-to-regexp](https://github.com/pillarjs/path-to-regexp) 库，将 path 转为正则判断
+ * 简介：Turn a path string such as `/user/:name` into a regular expression
+ *
+ * 简单理解就是，我们传给 Route 组件的 path, exact, strict... 等等 path 判断，都会交给它来处理，
+ * 它处理后会返回一个正则给我们，我们用这个正则表达式来判断当前的 location.pathname 是否符合条件
+ *
+ *   简单看一下 pathToRegExp 的返回
+ *
+ *   const keys = [];
+ *   // 帮 React-Router 处理动态路由
+ *   const regexp = pathToRegexp("/foo/:bar", keys);
+ *   regexp = /^\/foo(?:\/([^\/#\?]+?))[\/#\?]?$/i
+ *   keys = [{ name: 'bar', prefix: '/', suffix: '', pattern: '[^\\/#\\?]+?', modifier: '' }]
+ *
+ */
 function compilePath(path, options) {
+  /**
+   * matchPath 方法的调用频率是非常高的
+   * 每切换一次 location.pathname，所有 Route 组件都要重新做一遍校验
+   *
+   * 所以 React Router 在这里根据 path, options 做了一个缓存：当入参不变时，直接使用缓存，提高性能
+   */
   const cacheKey = `${options.end}${options.strict}${options.sensitive}`;
   const pathCache = cache[cacheKey] || (cache[cacheKey] = {});
 
   if (pathCache[path]) return pathCache[path];
 
   const keys = [];
+  /**
+   * 这里就是前面说的，通过 pathToRegexp 返回正则
+   */
   const regexp = pathToRegexp(path, keys, options);
   const result = { regexp, keys };
 
@@ -73,7 +98,7 @@ function matchPath(pathname, options = {}) {
      * 这里通过 [path-to-regexp](https://github.com/pillarjs/path-to-regexp) 库，将 path 转为正则判断
      * 简介：Turn a path string such as `/user/:name` into a regular expression
      *
-     * 简单理解就是，我们传给 Route 组件的 path, exact, strict... 等等 path 判断，都会交给它来处理，
+     * 简单理解就是，我们传给 Route 组件的 path, exact, strict... 等等，都会交给它来处理，
      * 它处理后会返回一个正则给我们，我们用这个正则表达式来判断当前的 location.pathname 是否符合条件
      */
     const { regexp, keys } = compilePath(path, {
@@ -93,6 +118,16 @@ function matchPath(pathname, options = {}) {
     if (!match) return null;
 
     const [url, ...values] = match;
+
+    /**
+     * 当我们设置 exact 为 true 时，ReactRouter 的定义是完全相等，也就是 '==='
+     *
+     * 但是 pathToExact 没有 exact 选项
+     *   例如我们只传 { exact: true, path: '/a/b/c' } 时
+     *   pathToExact 返回的 regexp 匹配 regexp.exec('/A/B/C') 为 true
+     *   example: https://regexr.com/5rhrq
+     * 所以这时候就需要 React Router 自己做一下判断
+     */
     const isExact = pathname === url;
 
     if (exact && !isExact) return null;
