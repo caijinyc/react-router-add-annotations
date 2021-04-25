@@ -6,18 +6,17 @@ let cacheCount = 0;
 
 /**
  * 这里通过 [path-to-regexp](https://github.com/pillarjs/path-to-regexp) 库，将 path 转为正则判断
- * 简介：Turn a path string such as `/user/:name` into a regular expression
+ * path-to-regexp ：Turn a path string such as `/user/:name` into a regular expression
  *
  * 简单理解就是，我们传给 Route 组件的 path, exact, strict... 等等 path 判断，都会交给它来处理，
  * 它处理后会返回一个正则给我们，我们用这个正则表达式来判断当前的 location.pathname 是否符合条件
  *
- *   简单看一下 pathToRegExp 的返回
+ *   简单看一下 pathToRegExp 的返回:
  *
  *   const keys = [];
- *   // 帮 React-Router 处理动态路由
  *   const regexp = pathToRegexp("/foo/:bar", keys);
- *   regexp = /^\/foo(?:\/([^\/#\?]+?))[\/#\?]?$/i
- *   keys = [{ name: 'bar', prefix: '/', suffix: '', pattern: '[^\\/#\\?]+?', modifier: '' }]
+ *   // regexp = /^\/foo(?:\/([^\/#\?]+?))[\/#\?]?$/i
+ *   // keys = [{ name: 'bar', prefix: '/', suffix: '', pattern: '[^\\/#\\?]+?', modifier: '' }]
  *
  */
 function compilePath(path, options) {
@@ -95,11 +94,17 @@ function matchPath(pathname, options = {}) {
     if (matched) return matched;
 
     /**
+     *
      * 这里通过 [path-to-regexp](https://github.com/pillarjs/path-to-regexp) 库，将 path 转为正则判断
      * 简介：Turn a path string such as `/user/:name` into a regular expression
      *
      * 简单理解就是，我们传给 Route 组件的 path, exact, strict... 等等，都会交给它来处理，
-     * 它处理后会返回一个正则给我们，我们用这个正则表达式来判断当前的 location.pathname 是否符合条件
+     * 它处理后会返回:
+     * 1. 一个正则，我们用这个正则表达式来判断当前的 location.pathname 是否符合条件
+     * 2. keys：当我们传递 '/foo/:bar' 这种 path 给 React Router 的时候，它就会帮我们把 :bar 进行解析
+     *          :bar -> { name: 'bar', prefix: '/', suffix: '', pattern: '[^\\/#\\?]+?', modifier: '' }
+     * React Router 会通过返回的 regexp 通过调用 regexp.exec(pathname) 来获取到 :bar 对应的实际 value
+     *
      */
     const { regexp, keys } = compilePath(path, {
       end: exact,
@@ -136,6 +141,13 @@ function matchPath(pathname, options = {}) {
       path, // the path used to match
       url: path === "/" && url === "" ? "/" : url, // the matched portion of the URL
       isExact, // whether or not we matched exactly
+
+      /**
+       * 当 path 设置为 /foo/:bar 格式，实际 pathname 为 /foo/abc 时
+       * 这里就会解析为： { bar: abc }
+       *
+       * 当我们调用 useParams 的时候，获取的值就是这个~
+       */
       params: keys.reduce((memo, key, index) => {
         memo[key.name] = values[index];
         return memo;
