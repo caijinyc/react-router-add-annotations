@@ -86,14 +86,23 @@ class Route extends React.Component {
                */
               props.match
                 ? children
-                  ? typeof children === "function"
+                  ? // 当 children 为 function 时，调用函数进行渲染
+                    typeof children === "function"
                     ? __DEV__
                       ? evalChildrenDev(children, props, this.props.path)
                       : children(props)
                     : children
-                  : component
+                  : /**
+                   *  如果没有 children 的话，检查有没有传入 component
+                   */
+                  component
                   ? React.createElement(component, props)
-                  : render
+                  : /**
+                   * 如果没有 children, component，检查有没有 render 方法
+                   * 优先级: children > component > render
+                   * ?? 为什么要定义三种传入的方式呢？
+                   */
+                  render
                   ? render(props)
                   : null
                 : typeof children === "function"
