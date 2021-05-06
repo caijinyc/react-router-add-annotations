@@ -97,16 +97,30 @@ class Route extends React.Component {
                    */
                   component
                   ? React.createElement(component, props)
-                  : /**
-                   * 如果没有 children, component，检查有没有 render 方法
-                   * 优先级: children > component > render
-                   * ?? 为什么要定义三种传入的方式呢？
-                   */
+                  :
+                   /**
+                    * 如果没有 children, component，检查有没有 render 方法
+                    * 优先级: children > component > render
+                    *
+                    * 为什么要定义三种传入的方式呢？
+                    * 1. children: func 无论什么情况都会渲染，所以用在特殊场景
+                    * 2. component 当需要传一个组件进去的时候，就可以使用 component
+                    *    但是因为 component 用的是 React.createElement 渲染的，所以不能传 inline func
+                    *    如果用了 inline func，那么每次 Route 被重新渲染，inline func 内部的状态就会丢失
+                    * 3. render 用起来最方便，可以直接传 inline func
+                    *
+                    */
                   render
                   ? render(props)
                   : null
                 : typeof children === "function"
                 ? __DEV__
+                  /**
+                   * 就算没有匹配成功也会将 children 渲染出来
+                   * 因为文档中对 Route props.children 的定义就是：
+                   *   Sometimes you need to render whether the path matches the location or not.
+                   *   无论是否匹配到 path 都会被渲染
+                   */
                   ? evalChildrenDev(children, props, this.props.path)
                   : children(props)
                 : null}
